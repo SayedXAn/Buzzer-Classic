@@ -1,10 +1,18 @@
 using UnityEngine;
 using System.IO.Ports;
 using System;
+using TMPro;
 
 public class SerialRelayController : MonoBehaviour
 {
     SerialPort serialPort;
+
+    [Header("UI")]
+    public TMP_InputField comPortInput;   // Drag your input field here
+    private const string COM_PORT_KEY = "ESP32_COM_PORT";
+    public GameObject adminPanel;
+    public TMP_Text currCOM;
+
 
     [Header("Serial Settings")]
     public string portName = "COM6";   
@@ -12,21 +20,27 @@ public class SerialRelayController : MonoBehaviour
 
     void Start()
     {
-        try
+        currCOM.text = "No COM Port Set";
+        if (PlayerPrefs.HasKey(COM_PORT_KEY))
         {
-            serialPort = new SerialPort(portName, baudRate);
-            serialPort.ReadTimeout = 50;
-            serialPort.Open();
-            Debug.Log("Serial Port Opened");
+            portName = PlayerPrefs.GetString(COM_PORT_KEY);
+            currCOM.text = "Current COM: " + portName;
         }
-        catch (Exception e)
-        {
-            Debug.LogError("Serial Connection Failed: " + e.Message);
-        }
+
+        // Update UI field text
+        if (comPortInput != null)
+            comPortInput.text = portName;
+
+        OpenSerialPort();
     }
+
 
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            OpenAdminPanel();
+        }
         if (serialPort == null || !serialPort.IsOpen)
             return;
 
@@ -49,8 +63,72 @@ public class SerialRelayController : MonoBehaviour
                 SendData("A");
             else
                 SendData("a");
+        }        
+    }
+
+    void OpenSerialPort()
+    {
+        try
+        {
+            serialPort = new SerialPort(portName, baudRate);
+            serialPort.ReadTimeout = 50;
+            serialPort.Open();
+            Debug.Log("Serial Port Opened: " + portName);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Serial Connection Failed: " + e.Message);
         }
     }
+
+    public void UpdateComPortFromInput()
+    {
+        if (comPortInput == null)
+            return;
+
+        string newPort = comPortInput.text.Trim();
+        newPort = newPort.ToUpper();
+        if (newPort.Length > 5) 
+        {
+            comPortInput.placeholder.GetComponent<TMP_Text>().text = "Invalid COM Format!\nExample: COM3";
+            Debug.LogWarning("Invalid COM port format. Please enter something like 'COM3'.");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(newPort))
+        {
+            Debug.LogWarning("COM port cannot be empty.");
+            return;
+        }
+
+        // Close existing port if open
+        if (serialPort != null && serialPort.IsOpen)
+        {
+            serialPort.Close();
+            Debug.Log("Old Serial Port Closed");
+        }
+
+        portName = newPort;
+
+        // Save to PlayerPrefs
+        PlayerPrefs.SetString(COM_PORT_KEY, portName);
+        PlayerPrefs.Save();
+
+        Debug.Log("Saved COM Port: " + portName);
+
+        // Re-open with new port
+        OpenSerialPort();
+        adminPanel.SetActive(false);
+        Application.Quit();
+    }
+
+    public void OpenAdminPanel()
+    {
+        Debug.Log("akdbkdbk");
+        currCOM.text = "Current COM: " + portName;
+        adminPanel.SetActive(true);
+    }
+
 
     void SendData(string data)
     {

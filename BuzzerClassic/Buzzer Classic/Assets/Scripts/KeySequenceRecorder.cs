@@ -7,13 +7,20 @@ public class KeySequenceRecorder : MonoBehaviour
     // Dynamic list (easier than fixed array)
     private List<int> keySequence = new List<int>();
     public TMP_Text[] textHolders;
+    int currText = -1;
 
     // Public read-only array (if you need it elsewhere)
     public int[] CurrentSequence
     {
         get { return keySequence.ToArray(); }
     }
-
+    private void Start()
+    {
+        foreach (var text in textHolders)
+        {
+            text.text = "";
+        }
+    }
     void Update()
     {
         for(int i = 0; i<10; i++)
@@ -21,7 +28,6 @@ public class KeySequenceRecorder : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.Alpha0 + i))
             {
                 AddNumber(i);
-                textHolders[i].text = keySequence[keySequence.Count - 1].ToString();
             }
         }
         if (Input.GetKeyDown(KeyCode.A))
@@ -38,28 +44,30 @@ public class KeySequenceRecorder : MonoBehaviour
             return;
         }
         keySequence.Add(number);
+        currText++;
+        
+        if(number == 0)
+        {
+            textHolders[currText].text = "10";
+        }
+        else
+        {
+            textHolders[currText].text = number.ToString();
+        }
         Debug.Log("Added: " + number);
-        PrintSequence();
+
     }
 
     void ClearSequence()
     {
         keySequence.Clear();
+        currText = -1;
+        foreach (var text in textHolders)
+        {
+            text.text = "";
+        }
         Debug.Log("Sequence Cleared");
     }
 
-    void PrintSequence()
-    {
-        string sequenceString = "Sequence: ";
 
-        for (int i = 0; i < keySequence.Count; i++)
-        {
-            sequenceString += keySequence[i];
-
-            if (i < keySequence.Count - 1)
-                sequenceString += ", ";
-        }
-
-        Debug.Log(sequenceString);
-    }
 }
