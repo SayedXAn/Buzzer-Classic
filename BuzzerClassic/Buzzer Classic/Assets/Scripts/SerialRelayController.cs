@@ -2,11 +2,12 @@ using UnityEngine;
 using System.IO.Ports;
 using System;
 using TMPro;
+using System.Collections;
 
 public class SerialRelayController : MonoBehaviour
 {
     SerialPort serialPort;
-
+    public KeySequenceRecorder ksr;
     [Header("UI")]
     public TMP_InputField comPortInput;   // Drag your input field here
     private const string COM_PORT_KEY = "ESP32_COM_PORT";
@@ -15,8 +16,16 @@ public class SerialRelayController : MonoBehaviour
 
 
     [Header("Serial Settings")]
-    public string portName = "COM6";   
+    public string portName = "COM6";
     public int baudRate = 115200;
+
+    [Header("Time Settings")]
+    private int timeToCount = 0;
+    private int timeCounter = 0;
+    public bool isGameOn = false;
+    public TMP_Text timeText;
+    public TMP_InputField timeIF;
+
 
     void Start()
     {
@@ -27,11 +36,20 @@ public class SerialRelayController : MonoBehaviour
             currCOM.text = "Current COM: " + portName;
         }
 
-        // Update UI field text
         if (comPortInput != null)
             comPortInput.text = portName;
 
         OpenSerialPort();
+        if (timeToCount == 0)
+        {
+            isGameOn = true;
+            timeText.text = "";
+            ksr.SetGameOn(true);
+        }
+        else
+        {
+            timeText.text = "Time Left: " + timeToCount.ToString() + "s";
+        }
     }
 
 
@@ -41,29 +59,47 @@ public class SerialRelayController : MonoBehaviour
         {
             OpenAdminPanel();
         }
+        if (Input.GetKeyDown(KeyCode.Backspace))
+        {
+            StopCountDown();
+        }
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            StartCountDown();
+        }
         if (serialPort == null || !serialPort.IsOpen)
+        {
             return;
+        }
 
-        // Numbers 0–9
-        if (Input.GetKeyDown(KeyCode.Alpha0)) SendData("0");
-        if (Input.GetKeyDown(KeyCode.Alpha1)) SendData("1");
-        if (Input.GetKeyDown(KeyCode.Alpha2)) SendData("2");
-        if (Input.GetKeyDown(KeyCode.Alpha3)) SendData("3");
-        if (Input.GetKeyDown(KeyCode.Alpha4)) SendData("4");
-        if (Input.GetKeyDown(KeyCode.Alpha5)) SendData("5");
-        if (Input.GetKeyDown(KeyCode.Alpha6)) SendData("6");
-        if (Input.GetKeyDown(KeyCode.Alpha7)) SendData("7");
-        if (Input.GetKeyDown(KeyCode.Alpha8)) SendData("8");
-        if (Input.GetKeyDown(KeyCode.Alpha9)) SendData("9");
-
-        // A or a
         if (Input.GetKeyDown(KeyCode.A))
         {
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
                 SendData("A");
             else
                 SendData("a");
-        }        
+            if(timeToCount > 0 && isGameOn)
+            {
+                timeText.text = "Time Left: " + timeToCount.ToString() + "s\nPress space to start";
+                isGameOn = false;
+                ksr.SetGameOn(false);
+            }
+        }
+
+        if (isGameOn)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha0)) SendData("0");
+            if (Input.GetKeyDown(KeyCode.Alpha1)) SendData("1");
+            if (Input.GetKeyDown(KeyCode.Alpha2)) SendData("2");
+            if (Input.GetKeyDown(KeyCode.Alpha3)) SendData("3");
+            if (Input.GetKeyDown(KeyCode.Alpha4)) SendData("4");
+            if (Input.GetKeyDown(KeyCode.Alpha5)) SendData("5");
+            if (Input.GetKeyDown(KeyCode.Alpha6)) SendData("6");
+            if (Input.GetKeyDown(KeyCode.Alpha7)) SendData("7");
+            if (Input.GetKeyDown(KeyCode.Alpha8)) SendData("8");
+            if (Input.GetKeyDown(KeyCode.Alpha9)) SendData("9");
+        }
+        
     }
 
     void OpenSerialPort()
@@ -88,7 +124,7 @@ public class SerialRelayController : MonoBehaviour
 
         string newPort = comPortInput.text.Trim();
         newPort = newPort.ToUpper();
-        if (newPort.Length > 5) 
+        if (newPort.Length > 5)
         {
             comPortInput.placeholder.GetComponent<TMP_Text>().text = "Invalid COM Format!\nExample: COM3";
             Debug.LogWarning("Invalid COM port format. Please enter something like 'COM3'.");
@@ -122,11 +158,38 @@ public class SerialRelayController : MonoBehaviour
         Application.Quit();
     }
 
+    public void SetTime()
+    {
+        if (timeIF.text == "" || timeIF.text == "0")
+        {
+            timeIF.placeholder.GetComponent<TMP_Text>().text = "Please enter a valid number!";
+            return;
+        }
+        else
+        {
+            timeToCount = int.Parse(timeIF.text);
+            timeText.text = "Time Left: " + timeToCount.ToString() + "s\nPress space to start";
+            isGameOn = false;
+            ksr.SetGameOn(false);
+        }        
+    }
+
     public void OpenAdminPanel()
     {
-        Debug.Log("akdbkdbk");
         currCOM.text = "Current COM: " + portName;
         adminPanel.SetActive(true);
+        isGameOn = false;
+        ksr.SetGameOn(false);
+    }
+
+    public void CloseAdminPanel()
+    {
+        adminPanel.SetActive(false);
+        if(timeToCount == 0)
+        {
+            isGameOn = true;
+            ksr.SetGameOn(true);
+        }
     }
 
 
@@ -150,5 +213,40 @@ public class SerialRelayController : MonoBehaviour
             serialPort.Close();
             Debug.Log("Serial Port Closed");
         }
+    }
+    public void StartCountDown()
+    {
+        if (!isGameOn)
+        {
+            timeCounter = timeToCount;
+            StartCoroutine(TimeCountDown());
+        }
+    }
+
+    IEnumerator TimeCountDown()
+    {
+        yield return new WaitForSeconds(1f);
+        if(timeCounter > 0)
+        {
+            timeCounter--;
+            timeText.text = "Time Left: " + timeCounter.ToString() + "s";
+            StartCoroutine(TimeCountDown());
+        }
+        else
+        {
+            timeText.text = "";
+            isGameOn = true;
+            ksr.SetGameOn(true);
+        }
+    }
+
+    public void StopCountDown()
+    {
+        StopAllCoroutines();
+        isGameOn = false;
+        ksr.ClearSequence();
+        ksr.SetGameOn(false);
+        timeCounter = 0;
+        timeText.text = "Time Left: " + timeToCount.ToString() + "s\nPress space to start";
     }
 }

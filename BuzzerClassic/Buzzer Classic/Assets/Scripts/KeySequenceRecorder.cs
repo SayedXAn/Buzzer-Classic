@@ -8,7 +8,7 @@ public class KeySequenceRecorder : MonoBehaviour
     private List<int> keySequence = new List<int>();
     public TMP_Text[] textHolders;
     int currText = -1;
-
+    private bool isGameOn = false;
     // Public read-only array (if you need it elsewhere)
     public int[] CurrentSequence
     {
@@ -23,17 +23,23 @@ public class KeySequenceRecorder : MonoBehaviour
     }
     void Update()
     {
-        for(int i = 0; i<10; i++)
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            ClearSequence();
+        }
+
+        if(!isGameOn)
+        {
+            return;
+        }
+        for (int i = 0; i<10; i++)
         {
             if (Input.GetKeyDown(KeyCode.Alpha0 + i))
             {
                 AddNumber(i);
             }
         }
-        if (Input.GetKeyDown(KeyCode.A))
-        {
-            ClearSequence();
-        }
+        
     }
 
     void AddNumber(int number)
@@ -58,7 +64,7 @@ public class KeySequenceRecorder : MonoBehaviour
 
     }
 
-    void ClearSequence()
+    public void ClearSequence()
     {
         keySequence.Clear();
         currText = -1;
@@ -69,5 +75,9 @@ public class KeySequenceRecorder : MonoBehaviour
         Debug.Log("Sequence Cleared");
     }
 
+    public void SetGameOn(bool value)
+    {
+        isGameOn = value;
+    }
 
 }
