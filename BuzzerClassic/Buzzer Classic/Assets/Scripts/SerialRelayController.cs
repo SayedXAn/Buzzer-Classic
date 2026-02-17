@@ -25,6 +25,7 @@ public class SerialRelayController : MonoBehaviour
     public bool isGameOn = false;
     public TMP_Text timeText;
     public TMP_InputField timeIF;
+    public AudioSource clockSFX;
 
 
     void Start()
@@ -219,6 +220,7 @@ public class SerialRelayController : MonoBehaviour
         if (!isGameOn)
         {
             timeCounter = timeToCount;
+            clockSFX.Play();
             StartCoroutine(TimeCountDown());
         }
     }
@@ -237,12 +239,14 @@ public class SerialRelayController : MonoBehaviour
             timeText.text = "";
             isGameOn = true;
             ksr.SetGameOn(true);
+            clockSFX.Stop();
         }
     }
 
     public void StopCountDown()
     {
         StopAllCoroutines();
+        clockSFX.Stop();
         isGameOn = false;
         ksr.ClearSequence();
         ksr.SetGameOn(false);

@@ -9,6 +9,7 @@ public class KeySequenceRecorder : MonoBehaviour
     public TMP_Text[] textHolders;
     int currText = -1;
     private bool isGameOn = false;
+    public AudioSource buzz;
     // Public read-only array (if you need it elsewhere)
     public int[] CurrentSequence
     {
@@ -51,6 +52,10 @@ public class KeySequenceRecorder : MonoBehaviour
         }
         keySequence.Add(number);
         currText++;
+        if(currText == 0)
+        {
+            buzz.Play();
+        }
         
         if(number == 0)
         {
